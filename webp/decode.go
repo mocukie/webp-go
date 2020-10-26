@@ -201,3 +201,7 @@ func calcOutputSize(config *C.WebPDecoderConfig) (w int, h int) {
     }
     return
 }
+
+func init() {
+    image.RegisterFormat("webp", "RIFF????WEBPVP8", Decode, DecodeConfig)
+}

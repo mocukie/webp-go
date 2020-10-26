@@ -31,6 +31,21 @@ const (
     HintLast    ImageHint = C.WEBP_HINT_LAST
 )
 
+type FilterType int
+
+const (
+    SimpleFilter FilterType = 0
+    StrongFilter FilterType = 1
+)
+
+type AlphaFilter int
+
+const (
+    NoneAlphaFilter AlphaFilter = iota
+    FastAlphaFilter
+    BestAlphaFilter
+)
+
 type EncodeOptions struct {
     Lossless bool
     // between 0 and 100. For lossy, 0 gives the smallest
@@ -56,13 +71,13 @@ type EncodeOptions struct {
     // range: [0 = off .. 7 = least sharp]
     FilterSharpness int
     // filtering type: 0 = simple, 1 = strong (only used if filter_strength > 0 or autofilter > 0)
-    FilterType int
+    FilterType FilterType
     // Auto adjust filter's strength
     AutoFilter bool
     // Algorithm for encoding the alpha plane (0 = none, 1 = compressed with WebP lossless). Default is 1
     AlphaCompression int
     // Predictive filtering method for alpha plane. 0: none, 1: fast, 2: best. Default if 1.
-    AlphaFiltering int
+    AlphaFiltering AlphaFilter
     // Between 0 (smallest size) and 100 (lossless). Default is 100.
     AlphaQuality int
     // number of entropy-analysis passes (in [1..10]).
@@ -109,10 +124,10 @@ func (opts *EncodeOptions) from(c *C.WebPConfig) {
     opts.SnsStrength = int(c.sns_strength)
     opts.FilterStrength = int(c.filter_strength)
     opts.FilterSharpness = int(c.filter_sharpness)
-    opts.FilterType = int(c.filter_type)
+    opts.FilterType = FilterType(c.filter_type)
     opts.AutoFilter = int(c.autofilter) == 1
     opts.AlphaCompression = int(c.alpha_compression)
-    opts.AlphaFiltering = int(c.alpha_filtering)
+    opts.AlphaFiltering = AlphaFilter(c.alpha_filtering)
     opts.AlphaQuality = int(c.alpha_quality)
     opts.Pass = int(c.pass)
     opts.ShowCompressed = int(c.show_compressed) == 1
@@ -194,6 +209,15 @@ func (opts *EncodeOptions) SetupLosslessPreset(level int) error {
         return VP8EncErrorInvalidConfiguration
     }
     opts.from(&c)
+    return nil
+}
+
+func (opts *EncodeOptions) Validate() error {
+    var c C.WebPConfig
+    opts.assign(&c)
+    if !validateEncodeConfig(&c) {
+        return VP8EncErrorInvalidConfiguration
+    }
     return nil
 }
 
